@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
@@ -92,14 +93,14 @@ void process(int &fd, const std::string &request) {
     }
 }
 // ===========================================================================================================
-void add_event(int epfd, int master, bool oneshot) {
+void add_event(int epfd, int fd, bool oneshot) {
     struct epoll_event event;
-    event.data.fd = master;
+    event.data.fd = fd;
     event.events = EPOLLIN | EPOLLET;
     if (oneshot)
         event.events |= EPOLLONESHOT;
 
-    epoll_ctl(epfd, EPOLL_CTL_ADD, master, &event);
+    epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &event);
 }
 // -----------------------------------------------------------------------------------------------------------
 void set_oneshot(int &epfd, int &fd) {
@@ -149,7 +150,7 @@ void get_args(int argc, char *argv[], sockaddr_in &addr) {
     }
 }
 // -----------------------------------------------------------------------------------------------------------
-int setnonblock(int fd) {
+int set_nonblock(int fd) {
     int flags;
     #if defined(O_NONBLOCK)
     if (-1 == (flags = fcntl(fd, F_GETFL, 0)))
@@ -162,36 +163,38 @@ int setnonblock(int fd) {
 }
 // -----------------------------------------------------------------------------------------------------------
 int run(int argc, char *argv[]) {
-    int master, epfd, prep, opt = 1;
+    int master, slave, epfd, num, opt = 1;
     // -------------------------------------------------------------------------------------------------------
     if ((master = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        exit(-1);;
+        exit(1);
 
-    setnonblock(master);
+    set_nonblock(master);
     struct sockaddr_in addr;
     get_args(argc, argv, addr);
     
     if (setsockopt(master, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-        exit(-1);
+        exit(1);
     
     if (bind(master, (struct sockaddr *) &addr, sizeof(addr)))
-        exit(-1);
+        exit(1);
 
     if (listen(master, SOMAXCONN) < 0)
-        exit(-1);
+        exit(1);
     // -------------------------------------------------------------------------------------------------------
     struct epoll_event events[1024];
     if ((epfd = epoll_create1(0)) < 0)
-        exit(-1);
+        exit(1);
     add_event(epfd, master, false);
     // -------------------------------------------------------------------------------------------------------
     while (1) {
-        if ((prep = epoll_wait(epfd, events, 1024, -1)) < 0)
+        if ((num = epoll_wait(epfd, events, 1024, -1)) < 0)
             break;
         // ---------------------------------------------------------------------------------------------------
-        for (int i = 0; i < prep; ++i) {
+        for (int i = 0; i < num; ++i) {
             if (events[i].data.fd == master) {
-                int slave = accept(master, 0, 0);
+                if ((slave = accept(master, 0, 0)) < 0)
+                    exit(1);
+                set_nonblock(slave);
                 add_event(epfd, slave, true);
                 // -------------------------------------------------------------------------------------------
             } else {
@@ -211,7 +214,7 @@ void daemonize() {
     pid_t pid = fork();
 
     if (pid == -1)
-        exit(-1);
+        exit(1);
     else if (pid)
         exit(0);
 
@@ -226,7 +229,7 @@ void daemonize() {
 // -----------------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
     daemonize();
-    while (1)
-    	run(argc, argv);
+    //while (1)
+    run(argc, argv);
     return 0;
 }
