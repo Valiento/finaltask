@@ -5,7 +5,9 @@
 
 #include <getopt.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sstream>
+#include <stdio.h>
 #include <fcntl.h>
 #include <cerrno>
 #include <thread>
