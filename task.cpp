@@ -212,7 +212,7 @@ void daemonize() {
 
     if (pid == -1)
         exit(-1);
-    else if (!pid)
+    else if (pid)
         exit(0);
 
     chdir("/");
