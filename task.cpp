@@ -195,7 +195,8 @@ int run(int argc, char *argv[]) {
                 add_event(epfd, slave, true);
                 // -------------------------------------------------------------------------------------------
             } else {
-                std::thread worker(&work, epfd, events[i].data.fd);
+                int fd = events[i].data.fd;
+                std::thread worker(&work, epfd, fd);
                 worker.join();
             }
         }
