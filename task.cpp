@@ -226,7 +226,7 @@ void daemonize() {
 // -----------------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
     daemonize();
-    //while (1)
-    run(argc, argv);
+    while (1)
+    	run(argc, argv);
     return 0;
 }
