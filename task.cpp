@@ -197,7 +197,7 @@ int run(int argc, char *argv[]) {
             } else {
                 int fd = events[i].data.fd;
                 std::thread worker(&work, epfd, fd);
-                worker.join();
+                worker.detach();
             }
         }
     }
