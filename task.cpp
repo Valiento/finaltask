@@ -213,14 +213,14 @@ int run(int argc, char *argv[]) {
 void daemonize() {
     pid_t pid = fork();
 
-    if (pid == -1)
+    if (pid < 0)
         exit(1);
     else if (pid)
         exit(0);
 
     chdir("/");
     umask(0);
-    if (setsid())
+    if (setsid() < 0)
         exit(1);
 
     close(STDIN_FILENO);
