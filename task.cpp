@@ -175,7 +175,7 @@ int run(int argc, char *argv[]) {
     if (setsockopt(master, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
         exit(1);
     
-    if (bind(master, (struct sockaddr *) &addr, sizeof(addr)))
+    if (bind(master, (struct sockaddr *) &addr, sizeof(addr)) < 0)
         exit(1);
 
     if (listen(master, SOMAXCONN) < 0)
@@ -220,7 +220,8 @@ void daemonize() {
 
     chdir("/");
     umask(0);
-    setsid();
+    if (setsid())
+        exit(1);
 
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
