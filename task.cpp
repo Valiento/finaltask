@@ -35,9 +35,9 @@ std::string http_ok_200(const std::string &data) {
     ss << data.size();
     ss << "\r\n";
     ss << "Content-type: text/html";
-    ss << "\r\n";
-    ss << "Content: ";
-    ss << data;
+    //ss << "\r\n";
+    //ss << "Content: ";
+    //ss << data;
     ss << "\r\n\r\n";
     return ss.str();
 }
@@ -62,7 +62,7 @@ void process(int &fd, const std::string &request) {
     std::string filename = parse_request(request);
     if (filename == "") {
         std::string err = http_error_404();
-        send(fd, err.c_str(), err.length() + 1, MSG_NOSIGNAL);
+        send(fd, err.c_str(), err.length()+1, MSG_NOSIGNAL);
         return;
         // ---------------------------------------------------------------------------------------------------
     } else {
@@ -119,7 +119,7 @@ void work(int epfd, int slave) {
     // -------------------------------------------------------------------------------------------------------
     while (1) {
         int size = recv(slave, buf, size-1, 0);
-        if (size) {
+        if (!size) {
             shutdown(slave, SHUT_RDWR);
             close(slave);
             break;
@@ -174,10 +174,8 @@ int run(int argc, char *argv[]) {
     
     if (setsockopt(master, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
         exit(1);
-    
     if (bind(master, (struct sockaddr *) &addr, sizeof(addr)) < 0)
         exit(1);
-
     if (listen(master, SOMAXCONN) < 0)
         exit(1);
     // -------------------------------------------------------------------------------------------------------
@@ -230,7 +228,7 @@ void daemonize() {
 // -----------------------------------------------------------------------------------------------------------
 int main(int argc, char *argv[]) {
     daemonize();
-    //while (1)
-    run(argc, argv);
+    while (1)
+        run(argc, argv);
     return 0;
 }
