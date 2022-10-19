@@ -42,6 +42,7 @@ std::string http_ok_200(const std::string &data) {
     //ss << "Content: ";
     //ss << data;
     ss << "\r\n\r\n";
+    ss << data;
     return ss.str();
 }
 // -----------------------------------------------------------------------------------------------------------
@@ -123,14 +124,12 @@ void work(int epfd, int slave) {
     while (1) {
         int size = recv(slave, buf, len-1, 0);
         if (!size) {
-            shutdown(slave, SHUT_RDWR);
+            //shutdown(slave, SHUT_RDWR);
             close(slave);
             break;
         } else if (size < 0) {
             set_oneshot(epfd, slave);
             process(slave, request);
-            break;
-            //}
         } else {
             request += buf;
         }
