@@ -1,6 +1,6 @@
-#include <cstdlib>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <string>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 
@@ -13,7 +13,12 @@
 #include <cerrno>
 #include <thread>
 
+#include <signal.h>
+#include <iostream>
+#include <fstream>
+
 std::string directory;
+void check(std::string error);
 
 // ===========================================================================================================
 std::string http_error_404() {
@@ -72,7 +77,9 @@ void process(int &fd, const std::string &request) {
             ss << "/";
         ss << filename;
 
+        check("proc-0");
         FILE *file = fopen(ss.str().c_str(), "r");
+        check("proc-1");
         // ---------------------------------------------------------------------------------------------------
         if (file) {
             std::stringstream ss;
@@ -81,9 +88,12 @@ void process(int &fd, const std::string &request) {
             while ((c = fgetc(file)) != EOF)
                 ss << c;
             data = ss.str();
+            check(data);
             // -----------------------------------------------------------------------------------------------
             std::string ok = http_ok_200(data);
-            send(fd, ok.c_str(), ok.size(), MSG_NOSIGNAL);
+            check(ok);
+            int i = send(fd, ok.c_str(), ok.size(), MSG_NOSIGNAL);
+            check(std::to_string(i)+"-error-"+std::to_string(ok.size()));
             fclose(file);
             // -----------------------------------------------------------------------------------------------
         } else {
@@ -118,16 +128,18 @@ void work(int epfd, int slave) {
     std::fill(buf, buf+len, '\0');
     // -------------------------------------------------------------------------------------------------------
     while (1) {
-        int size = recv(slave, buf, size-1, 0);
+        int size = recv(slave, buf, len-1, 0);
         if (!size) {
             shutdown(slave, SHUT_RDWR);
             close(slave);
             break;
-        } else if (size < 0 && errno == EAGAIN) {
+        } else if (size < 0) {
             set_oneshot(epfd, slave);
             process(slave, request);
             break;
+            //}
         } else {
+            check("else-3");
             request += buf;
         }
     }
@@ -198,7 +210,7 @@ int run(int argc, char *argv[]) {
             } else {
                 int fd = events[i].data.fd;
                 std::thread worker(&work, epfd, fd);
-                worker.detach();
+                worker.join();
             }
         }
     }
@@ -209,6 +221,7 @@ int run(int argc, char *argv[]) {
 }
 // ===========================================================================================================
 void daemonize() {
+    signal(SIGHUP, SIG_IGN);
     pid_t pid = fork();
 
     if (pid < 0)
