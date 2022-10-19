@@ -1,6 +1,5 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <string>
 #include <sys/epoll.h>
 #include <sys/stat.h>
 
@@ -18,7 +17,6 @@
 #include <fstream>
 
 std::string directory;
-void check(std::string error);
 
 // ===========================================================================================================
 std::string http_error_404() {
@@ -77,9 +75,7 @@ void process(int &fd, const std::string &request) {
             ss << "/";
         ss << filename;
 
-        check("proc-0");
         FILE *file = fopen(ss.str().c_str(), "r");
-        check("proc-1");
         // ---------------------------------------------------------------------------------------------------
         if (file) {
             std::stringstream ss;
@@ -88,12 +84,9 @@ void process(int &fd, const std::string &request) {
             while ((c = fgetc(file)) != EOF)
                 ss << c;
             data = ss.str();
-            check(data);
             // -----------------------------------------------------------------------------------------------
             std::string ok = http_ok_200(data);
-            check(ok);
-            int i = send(fd, ok.c_str(), ok.size(), MSG_NOSIGNAL);
-            check(std::to_string(i)+"-error-"+std::to_string(ok.size()));
+            send(fd, ok.c_str(), ok.size(), MSG_NOSIGNAL);
             fclose(file);
             // -----------------------------------------------------------------------------------------------
         } else {
@@ -139,7 +132,6 @@ void work(int epfd, int slave) {
             break;
             //}
         } else {
-            check("else-3");
             request += buf;
         }
     }
